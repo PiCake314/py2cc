@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Iterate over each file in the "tests" directory
+for file in tests/*.py; do
+    filename=$(basename "$file" .py)
+
+    # Run the commands
+    ./cnv "$filename"
+    echo "Python:"
+    python3 $file
+
+    echo -e "\nCC:"
+    make -s run file="$filename"
+
+    echo "========================================"
+done

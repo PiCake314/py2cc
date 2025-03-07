@@ -16,19 +16,25 @@ class Visitor(ast.NodeVisitor):
             "", "",
             # ""
         ]
+
+        self.functions = []
+
         self.line = "int main()"
         self.indent = "" # for beauty reasons
 
         self.vars = set()
 
-    def advance(self, end="", semi=True):
-        if not self.line and not end: return # nothing to append
 
-        self.lines.append(f"{self.indent}{self.line}{end}" + (";" if semi else ""))
+    def advance(self, end="", semi=True, comment=""):
+        if not self.line.strip() and not end: return # nothing to append. Prevents adding a useless semi
+
+        strOrEmpty = lambda s, cond: s if cond else ""
+
+        self.lines.append(f"{self.indent}{self.line}{end}" + strOrEmpty(";", semi) + strOrEmpty(f"\t// {comment}", comment))
         self.line = ""
 
     def scope(self):
-        space = " " if self.line[-1] != " " else ""
+        space = " " if self.line and self.line[-1] != " " else ""
         self.advance(f"{space}{{", semi=False)
         self.indent += "\t"
 
@@ -37,13 +43,17 @@ class Visitor(ast.NodeVisitor):
         self.advance("}", semi=False)
 
 
+    def visitBody(self, body, unbrace=False):
 
-    def visitBody(self, body):
-        self.scope()
+        if not unbrace: self.scope()
+
+        if unbrace: self.line += " "
+
         for expr in body:
             self.visit(expr)
             self.advance()
-        self.unscope()
+
+        if not unbrace: self.unscope()
 
     def visit_Module(self, node):
         self.visitBody(node.body)
@@ -113,18 +123,20 @@ class Visitor(ast.NodeVisitor):
         self.line += "}"
 
 
-
     def visit_Assign(self, node):
         self.visit(node.targets[0])
         self.line += " = "
         self.visit(node.value)
 
 
+    def visit_AnnAssign(self, node):
+        raise NotImplementedError("Types are not supported yet!")
+
+
     def visit_AugAssign(self, node):
         self.visit(node.target) # single target
         self.line += f" {Visitor.getBinOp(node.op)}= "
         self.visit(node.value)
-
 
 
     def visit_BinOp(self, node):
@@ -144,6 +156,13 @@ class Visitor(ast.NodeVisitor):
                     self.line += " or "
 
             self.visit(value)
+
+
+    def visit_UnaryOp(self, node):
+        op = Visitor.getUOp(node.op)
+        self.line += f"{op}{" " if op == 'not' else ""}"
+        self.visit(node.operand)
+
 
     def visit_Compare(self, node):
         self.visit(node.left)
@@ -172,19 +191,11 @@ class Visitor(ast.NodeVisitor):
         self.visit(node.test)
         self.line += ")"
 
-        self.visitBody(node.body)
+        self.visitBody(node.body, unbrace=True)
 
         if node.orelse:
-            self.line = "else "
-            if len(node.orelse) > 1: self.scope()
-
-        for expr in node.orelse:
-            self.visit(expr)
-            self.advance()
-
-
-        if len(node.orelse) > 1: self.unscope()
-
+            self.line = "else"
+            self.visitBody(node.orelse, unbrace=True)
 
     def visit_While(self, node):
         self.line += "while ("
@@ -193,18 +204,42 @@ class Visitor(ast.NodeVisitor):
 
         self.visitBody(node.body)
 
-
     def visit_For(self, node):
-        self.line += "for ("
-        self.visit(node.target)
+        # gotta make some const analysis
+        # but adding const will do the trick
+        # same with the ref
+
+        self.line += f"for (const auto& {node.target.id}"
+        self.vars.add(node.target.id) 
+        # self.visit(node.target)
         self.line += " : "
         self.visit(node.iter)
         self.line += ")"
 
-        self.visitBody(node.body)
+        self.visitBody(node.body, unbrace=False)
+
+
+    def visit_Break(self, node):
+        self.line += "break"
+
+    def visit_Continue(self, node):
+        self.line += "continue"
+
+    def visit_Pass(self, node):
+        # # self.advance() # advance gets called automatically if not called already
+        # pass             # so either lines here are fine
+        self.advance(comment="pass")
+
+
+# ====================================================================================
+
+
+    def visit_FunctionDef(self, node):
+        pass
 
 
 
+# ====================================================================================
 
 
     def getCompOp(op):
@@ -254,3 +289,14 @@ class Visitor(ast.NodeVisitor):
                 raise NotImplementedError('Matrix multiplication "@" operator not implemented')
 
         raise Exception("Unknown operator")
+
+    def getUOp(op):
+        match op:
+            case ast.USub():
+                return "-"
+            case ast.UAdd():
+                return "+"
+            case ast.Not():
+                return "not"
+            case ast.Invert():
+                return "~"

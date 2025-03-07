@@ -7,8 +7,10 @@ using namespace std::literals;
 
 
 int main() {
-	auto x = true;
-	if (x) std::println("{}", "Hello, World!"s);
+	auto v = std::vector{"Hey!"s, "Name is"s, "aliiii"s};
+	for (const auto& e : v) {
+		std::println("{}", e);
+	}
 }
 
 

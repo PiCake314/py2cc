@@ -8,7 +8,9 @@ using namespace std::literals;
 
 int main() {
 	auto x = true;
-	if (x) std::println("{}", "Hello, World!"s);
+	if (false) ;	// pass
+	if (x) ;	// pass
+	else ;	// pass
 }
 
 

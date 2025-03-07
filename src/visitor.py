@@ -9,13 +9,15 @@ class Visitor(ast.NodeVisitor):
         self.lines = [
             "#include <print>",
             "#include <string>",
+            "#include <vector>",
+            "#include <ranges>",
             "",
             "using namespace std::literals;",
             "", "",
-            "int main() {"
+            # ""
         ]
-        self.line = ""
-        self.indent = "\t" # for beauty reasons
+        self.line = "int main()"
+        self.indent = "" # for beauty reasons
 
         self.vars = set()
 
@@ -35,13 +37,17 @@ class Visitor(ast.NodeVisitor):
         self.advance("}", semi=False)
 
 
-    def visit_Module(self, node):
-        for expr in node.body:
+
+    def visitBody(self, body):
+        self.scope()
+        for expr in body:
             self.visit(expr)
             self.advance()
+        self.unscope()
 
-
-        self.lines.append("}\n\n")
+    def visit_Module(self, node):
+        self.visitBody(node.body)
+        self.lines.append("\n\n")
 
 
     def visit_Expr(self, node):
@@ -53,17 +59,28 @@ class Visitor(ast.NodeVisitor):
             case ast.Name(id="print"):
                 self.line += "std::println("
 
+                self.line += '"'
+                for _ in node.args: self.line += "{} "
+                self.line = self.line[:-1] + '", ' # removing last space and closing quote
+
+            case ast.Name(id="range"):
+                self.line += "std::ranges::views::iota("
+
+                if len(node.args) == 1:
+                    # not sure which is better...
+
+                    # self.line += "0, "
+                    node.args.insert(0, ast.Constant(value=0)) # beginning of the range
+
             case _:
                 raise Exception("Unknown function")
 
 
-        self.line += '"'
-        for _ in node.args: self.line += '{} '
-        self.line = self.line[:-1] + '"' # removing last space and closing quote
-
-        for arg in node.args:
-            self.line += ", "
+        for arg in node.args[:-1]:
             self.visit(arg)
+            self.line += ", "
+        if node.args: self.visit(node.args[-1])
+
 
         self.line += ")" # closing function call paren
 
@@ -76,7 +93,6 @@ class Visitor(ast.NodeVisitor):
         else:
             self.line += node.id
 
-
     def visit_Constant(self, node):
         if isinstance(node.value, str):
             self.line += f'"{node.value}"s'
@@ -84,6 +100,18 @@ class Visitor(ast.NodeVisitor):
             self.line += str(node.value).lower()
         else:
             self.line += str(node.value)
+
+
+    def visit_List(self, node):
+        self.line += "std::vector{"
+
+        for elt in node.elts[:-1]:
+            self.visit(elt)
+            self.line += ", "
+        if node.elts: self.visit(node.elts[-1])
+
+        self.line += "}"
+
 
 
     def visit_Assign(self, node):
@@ -143,14 +171,8 @@ class Visitor(ast.NodeVisitor):
         self.line += "if ("
         self.visit(node.test)
         self.line += ")"
-        self.scope()
 
-        for expr in node.body:
-            self.visit(expr)
-            self.advance()
-
-
-        self.unscope()
+        self.visitBody(node.body)
 
         if node.orelse:
             self.line = "else "
@@ -168,14 +190,20 @@ class Visitor(ast.NodeVisitor):
         self.line += "while ("
         self.visit(node.test)
         self.line += ")"
-        self.scope()
 
-        for expr in node.body:
-            self.visit(expr)
-            self.advance()
+        self.visitBody(node.body)
 
 
-        self.unscope()
+    def visit_For(self, node):
+        self.line += "for ("
+        self.visit(node.target)
+        self.line += " : "
+        self.visit(node.iter)
+        self.line += ")"
+
+        self.visitBody(node.body)
+
+
 
 
 
@@ -195,8 +223,6 @@ class Visitor(ast.NodeVisitor):
                 return ">="
 
         raise Exception("Unknown operator")
-    
-
 
     def getBinOp(op):
         match op:

@@ -1,5 +1,6 @@
 #include <print>
 #include <string>
+#include <ranges>
 
 using namespace std::literals;
 
@@ -11,4 +12,5 @@ int main() {
 		i = i + 1;
 	}
 }
+
 

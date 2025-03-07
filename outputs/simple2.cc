@@ -1,5 +1,6 @@
 #include <print>
 #include <string>
+#include <ranges>
 
 using namespace std::literals;
 
@@ -10,4 +11,5 @@ int main() {
 	auto z = x + y;
 	std::println("{}", z);
 }
+
 

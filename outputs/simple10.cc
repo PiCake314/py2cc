@@ -1,5 +1,6 @@
 #include <print>
 #include <string>
+#include <ranges>
 
 using namespace std::literals;
 
@@ -11,4 +12,5 @@ int main() {
 	std::println("{}", 1 < 5 and 5 > 2 and 2 < 1);
 	std::println("{}", 1 < 5 and 5 > 2 and 2 > 1);
 }
+
 

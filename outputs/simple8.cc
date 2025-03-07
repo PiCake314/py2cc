@@ -1,5 +1,6 @@
 #include <print>
 #include <string>
+#include <ranges>
 
 using namespace std::literals;
 
@@ -9,4 +10,5 @@ int main() {
 	std::println("{}", false or false and false);
 	std::println("{}", true and false or true);
 }
+
 

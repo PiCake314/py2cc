@@ -6,10 +6,8 @@ using namespace std::literals;
 
 
 int main() {
-	auto i = 0;
-	while (i < 10) {
+	for (auto i : std::ranges::views::iota(0, 5)) {
 		std::println("{}", i);
-		i += 1;
 	}
 }
 

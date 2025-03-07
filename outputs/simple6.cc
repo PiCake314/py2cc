@@ -1,5 +1,6 @@
 #include <print>
 #include <string>
+#include <ranges>
 
 using namespace std::literals;
 
@@ -9,4 +10,5 @@ int main() {
 	auto y = 5;
 	std::println("{}", x | y);
 }
+
 

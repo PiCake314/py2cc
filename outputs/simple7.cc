@@ -1,5 +1,6 @@
 #include <print>
 #include <string>
+#include <ranges>
 
 using namespace std::literals;
 
@@ -10,4 +11,5 @@ int main() {
 	std::println("{}", x or y);
 	std::println("{}", x and y);
 }
+
 

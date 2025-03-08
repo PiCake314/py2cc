@@ -20,7 +20,7 @@ def output(file: str, stdout: bool, v: visitor.Visitor):
 
     ccfile = f"{OUT}{file}.cc"
     with open(ccfile, "w") if not stdout else sys.stdout as fout:
-        fout.write("\n".join(v.lines))
+        fout.write("\n".join(v.code()))
 
 
     if not stdout: print(f"{GREEN}File {ccfile} created{RESET}")

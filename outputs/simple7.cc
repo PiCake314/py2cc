@@ -6,7 +6,8 @@
 using namespace std::literals;
 
 
-int main() {
+int main()
+{
 	auto x = true;
 	auto y = false;
 	std::println("{}", x or y);

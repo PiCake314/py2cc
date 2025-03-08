@@ -2,11 +2,26 @@ import ast
 
 
 
+# Maybe not needed
+
+# class Function:
+#     def __init__(self, name, args, body):
+#         self.name = name
+#         self.args = args
+#         self.body = body
+
+#     def __str__(self):
+#         return f"{self.name}({', '.join(self.args)})"
+
+
+
+
+
 class Visitor(ast.NodeVisitor):
 
     def __init__(self):
         super().__init__()
-        self.lines = [
+        self.lines: list[str] = [
             "#include <print>",
             "#include <string>",
             "#include <vector>",
@@ -14,23 +29,58 @@ class Visitor(ast.NodeVisitor):
             "",
             "using namespace std::literals;",
             "", "",
-            # ""
+            "int main()"
         ]
 
-        self.functions = []
+        self.functions: list[list[str]] = []
 
-        self.line = "int main()"
-        self.indent = "" # for beauty reasons
+        self.in_func: bool = False
 
-        self.vars = set()
+        self.line: str = ""
+        self.indent: str = "" # for beauty reasons
 
+        self.globals: set[str] = set()
+        self.stack: list[set[str]] = []
+
+        # used when function
+        self.old_stack: list[set[str]] = None
+
+        # self.vars: set[str] = set()
+        self.new_env = self
+
+    def code(self): # should only be called once. Maybe I should add a flag, but I'll leave it for now!
+        index = self.lines.index("int main()") - 1
+
+        for function in self.functions:
+            self.lines[index : index] = function
+            index += len(function) + 1
+
+        return self.lines
+
+
+
+    def varExists(self, name):
+        return any(name in stack for stack in self.stack) or name in self.globals
+
+    def addVar(self, name):
+        self.stack[-1].add(name)
+
+    def addEnv(self):
+        self.stack.append(set())
+
+    def endEnv(self):
+        self.stack.pop()
 
     def advance(self, end="", semi=True, comment=""):
         if not self.line.strip() and not end: return # nothing to append. Prevents adding a useless semi
 
         strOrEmpty = lambda s, cond: s if cond else ""
 
-        self.lines.append(f"{self.indent}{self.line}{end}" + strOrEmpty(";", semi) + strOrEmpty(f"\t// {comment}", comment))
+        if self.in_func:
+            self.functions[-1].append(f"{self.indent}{self.line}{end}" + strOrEmpty(";", semi) + strOrEmpty(f"\t// {comment}", comment))
+        else:
+            self.lines.append(f"{self.indent}{self.line}{end}" + strOrEmpty(";", semi) + strOrEmpty(f"\t// {comment}", comment))
+
         self.line = ""
 
     def scope(self):
@@ -45,18 +95,22 @@ class Visitor(ast.NodeVisitor):
 
     def visitBody(self, body, unbrace=False):
 
-        if not unbrace: self.scope()
+        should_scope = not unbrace or len(body) > 1
 
-        if unbrace: self.line += " "
+        if should_scope: self.scope()
+
+        if not should_scope: self.line += " "
 
         for expr in body:
             self.visit(expr)
             self.advance()
 
-        if not unbrace: self.unscope()
+        if should_scope: self.unscope()
 
     def visit_Module(self, node):
-        self.visitBody(node.body)
+        with self.new_env:
+            self.visitBody(node.body)
+
         self.lines.append("\n\n")
 
 
@@ -66,6 +120,8 @@ class Visitor(ast.NodeVisitor):
 
     def visit_Call(self, node):
         match node.func:
+            # special cases first
+
             case ast.Name(id="print"):
                 self.line += "std::println("
 
@@ -82,8 +138,10 @@ class Visitor(ast.NodeVisitor):
                     # self.line += "0, "
                     node.args.insert(0, ast.Constant(value=0)) # beginning of the range
 
-            case _:
-                raise Exception("Unknown function")
+            # general case
+            case _: # should I specify ast.Name or do I allow any expression?
+                self.visit(node.func)
+                self.line += "("
 
 
         for arg in node.args[:-1]:
@@ -97,9 +155,12 @@ class Visitor(ast.NodeVisitor):
 
     def visit_Name(self, node):
         # if isinstance(node.ctx, ast.Store):
-        if node.id not in self.vars: # needn't to check for ctx
+        # if node.id not in self.vars: # old: needn't to check for ctx | old: new: turns out I need | new: I don't need. I need something else
+        if not self.varExists(node.id):
             self.line += f"auto {node.id}"
-            self.vars.add(node.id)
+            # self.vars.add(node.id)
+            self.addVar(node.id)
+
         else:
             self.line += node.id
 
@@ -198,25 +259,31 @@ class Visitor(ast.NodeVisitor):
             self.visitBody(node.orelse, unbrace=True)
 
     def visit_While(self, node):
-        self.line += "while ("
-        self.visit(node.test)
-        self.line += ")"
+        with self.new_env: # new environment on top
+            self.line += "while ("
+            self.visit(node.test)
+            self.line += ")"
 
-        self.visitBody(node.body)
+            self.visitBody(node.body, unbrace=True)
+
 
     def visit_For(self, node):
         # gotta make some const analysis
         # but adding const will do the trick
         # same with the ref
 
-        self.line += f"for (const auto& {node.target.id}"
-        self.vars.add(node.target.id) 
-        # self.visit(node.target)
-        self.line += " : "
-        self.visit(node.iter)
-        self.line += ")"
+        with self.new_env: # new environment on top
+            self.line += f"for (const auto& {node.target.id}"
+            self.addVar(node.target.id)
 
-        self.visitBody(node.body, unbrace=False)
+            # self.vars.add(node.target.id) 
+            # self.visit(node.target)
+
+            self.line += " : "
+            self.visit(node.iter)
+            self.line += ")"
+
+            self.visitBody(node.body, unbrace=True)
 
 
     def visit_Break(self, node):
@@ -228,14 +295,51 @@ class Visitor(ast.NodeVisitor):
     def visit_Pass(self, node):
         # # self.advance() # advance gets called automatically if not called already
         # pass             # so either lines here are fine
-        self.advance(comment="pass")
+        self.advance(comment='"pass". Separate line to silence warning.')
 
 
 # ====================================================================================
 
 
+    def startFunc(self, name):
+        self.functions.append([])
+        self.indent = ""
+
+        # self.vars.add(name)
+        self.globals.add(name)
+
+        self.old_stack = self.stack
+        self.stack = []
+        self.in_func = True
+
+
+
+    def endFunc(self):
+        self.stack = self.old_stack
+        self.old_stack = None
+
+        self.indent = "\t"
+
+        self.in_func = False
+
+
     def visit_FunctionDef(self, node):
-        pass
+        self.startFunc(node.name)
+
+        with self.new_env:
+            self.line += f"auto {node.name}("
+            for arg in node.args.args:
+                self.line += f"const auto& {arg.arg}, "
+                self.addVar(arg.arg)
+
+            if node.args.args: self.line = self.line[:-2]
+
+            self.line += ")"
+
+            self.visitBody(node.body)
+
+
+        self.endFunc()
 
 
 
@@ -300,3 +404,12 @@ class Visitor(ast.NodeVisitor):
                 return "not"
             case ast.Invert():
                 return "~"
+
+
+    def __enter__(self):
+        self.addEnv()
+        return self
+
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.endEnv()

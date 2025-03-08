@@ -6,7 +6,8 @@
 using namespace std::literals;
 
 
-int main() {
+int main()
+{
 	auto a = "Hello"s;
 	auto b = "World"s;
 	std::println("{}", a + ", "s + b + "!"s);

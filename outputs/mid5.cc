@@ -6,7 +6,8 @@
 using namespace std::literals;
 
 
-int main() {
+int main()
+{
 	auto i = 0;
 	while (i < 10) {
 		std::println("{}", i);

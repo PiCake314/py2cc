@@ -6,11 +6,10 @@
 using namespace std::literals;
 
 
-int main() {
+int main()
+{
 	auto v = std::vector{"Hey!"s, "Name is"s, "aliiii"s};
-	for (const auto& e : v) {
-		std::println("{}", e);
-	}
+	for (const auto& e : v) std::println("{}", e);
 }
 
 

@@ -6,11 +6,12 @@
 using namespace std::literals;
 
 
-int main() {
+int main()
+{
 	auto x = true;
-	if (false) ;	// pass
-	if (x) ;	// pass
-	else ;	// pass
+	if (false) ;	// "pass". Separate line to silence warning.
+	if (x) ;	// "pass". Separate line to silence warning.
+	else ;	// "pass". Separate line to silence warning.
 }
 
 

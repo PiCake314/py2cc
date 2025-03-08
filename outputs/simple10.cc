@@ -6,7 +6,8 @@
 using namespace std::literals;
 
 
-int main() {
+int main()
+{
 	std::println("{}", 1 < 2 and 2 < 3);
 	std::println("{}", 1 < 2 < 3);
 	std::println("{}", 1 < (2 < 3));

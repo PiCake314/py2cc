@@ -5,11 +5,13 @@
 
 using namespace std::literals;
 
+auto greet(const auto& name) {
+	std::println("{} {}", "Hello,"s, name);
+}
 
 int main()
 {
-	auto l = std::vector{1, 2, 3};
-	std::println("{}", l);
+	greet("Ali"s);
 }
 
 

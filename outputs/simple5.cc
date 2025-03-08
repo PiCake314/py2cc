@@ -6,7 +6,8 @@
 using namespace std::literals;
 
 
-int main() {
+int main()
+{
 	auto x = +10;
 	auto y = -x;
 	auto z = +x;

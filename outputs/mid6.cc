@@ -6,10 +6,9 @@
 using namespace std::literals;
 
 
-int main() {
-	for (const auto& i : std::ranges::views::iota(0, 5)) {
-		std::println("{}", i);
-	}
+int main()
+{
+	for (const auto& i : std::ranges::views::iota(0, 5)) std::println("{}", i);
 }
 
 

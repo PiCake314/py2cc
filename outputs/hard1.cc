@@ -5,11 +5,12 @@
 
 using namespace std::literals;
 
+auto greet() {
+	std::println("{}", "Hello, World!"s);
+}
 
 int main()
 {
-	auto l = std::vector{1, 2, 3};
-	std::println("{}", l);
 }
 
 

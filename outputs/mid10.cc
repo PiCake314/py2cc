@@ -6,7 +6,8 @@
 using namespace std::literals;
 
 
-int main() {
+int main()
+{
 	auto x = std::vector{"a"s, "b"s, "c"s, "x"s, "y"s, "z"s};
 	for (const auto& elt : x) {
 		if (elt == "x"s or elt == "b"s) continue;

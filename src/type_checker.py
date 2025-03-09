@@ -1,7 +1,6 @@
 import ast
 
 
-
 class TypeChecker(ast.NodeVisitor):
     def __init__(self):
 
@@ -18,15 +17,29 @@ class TypeChecker(ast.NodeVisitor):
             name = node.targets[0].id
 
             if name not in self.type_map[self.func]:
-                self.type_map[self.func][name] = {}
+                self.type_map[self.func][name] = []
 
-            if isinstance(node.value, ast.Constant):
-                self.type_map[self.func][name].append(type(node.value.value).__name__)
-            else:
-                raise Exception(f"Unknown type for {node.value.value}")
+            # print(ast.dump(node))
+
+            match node.value:
+                case ast.Constant(value):
+                    self.type_map[self.func][name].append(type(value).__name__)
+                case ast.List(_):
+                    self.type_map[self.func][name].append(list.__name__) # I think that's just "list"
+                case ast.Dict(_):
+                    self.type_map[self.func][name].append(dict.__name__)
+                case ast.Set(_):
+                    self.type_map[self.func][name].append(set.__name__)
+                case ast.Tuple(_):
+                    self.type_map[self.func][name].append(tuple.__name__)
+
+                case ast.Name(id): pass
+
+                case _:
+                    raise Exception(f"Unknown type for:\n{ast.dump(node.value)}")
 
 
 
-    def visit_FunctionDef(self, node: ast.FunctionDef):
-
+    # def visit_FunctionDef(self, node: ast.FunctionDef):
+    #     pass
 

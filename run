@@ -1,1 +1,1 @@
-python3 $1tests/$2.py
+python3 $1_tests/$2.py

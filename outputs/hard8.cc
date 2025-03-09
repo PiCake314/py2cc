@@ -3,52 +3,50 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
 #include <tuple>
+#include <utility>
 #include <ranges>
+
+#include <optional>
+#include <variant>
+#include <any>
+
 
 using namespace std::literals;
 
 
+
 auto func() {
-}
+}	// "pass"
 
 auto a() {
-	if (true) {
-	}
+	if (true) 
+	;	// "pass"
 	else 
-	;	// "pass". Separate line to silence warning.
+	;	// "pass"
 }
 
 auto b() {
-	if (true) {
-		if (false) {
-			if (1) {
-			}
-			else 
-			;	// "pass". Separate line to silence warning.
-		}
-		else 
-		;	// "pass". Separate line to silence warning.
-	}
+	if (true) if (false) if (1) 
+	;	// "pass"
 	else 
-	;	// "pass". Separate line to silence warning.
+	;	// "pass"
+	else 
+	;	// "pass"
+	else 
+	;	// "pass"
 }
 
 auto c() {
-	if (true) {
-		if (false) {
-			if (1) {
-			}
-			else {
-				1;
-				2;
-			}
-		}
-		else {
-			3;
-			4;
-		}
+	if (true) if (false) if (1) 
+	;	// "pass"
+	else {
+		1;
+		2;
+	}
+	else {
+		3;
+		4;
 	}
 	else {
 		5;

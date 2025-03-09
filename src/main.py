@@ -2,6 +2,7 @@ import sys
 import os
 import ast
 import visitor
+import type_checker
 
 
 OUT = "outputs/"
@@ -11,7 +12,7 @@ GREEN = "\033[32m"
 RED = "\033[31m"
 RESET = "\033[0m"
 
-def output(file: str, stdout: bool, v: visitor.Visitor):
+def output(file: str, stdout: bool, code):
     if sys.argv[-1] == "debug" and not stdout: return
 
 
@@ -19,10 +20,13 @@ def output(file: str, stdout: bool, v: visitor.Visitor):
 
     ccfile = f"{OUT}{file}.cc"
     with open(ccfile, "w") if not stdout else sys.stdout as fout:
-        fout.write("\n".join(v.code()))
+        fout.write("\n".join(code))
 
 
     if not stdout: print(f"{GREEN}File {ccfile} created{RESET}")
+
+
+
 
 
 def main():
@@ -36,16 +40,26 @@ def main():
     pyfile = f"{DIR}/{file}.py"
     if not os.path.exists(pyfile): return print(f"{RED}File {pyfile} not found{RESET}")
 
-    v = visitor.Visitor(None)
+
+    code: str = ""
     with open(pyfile, "r") as fout:
         tree = ast.parse(fout.read())
 
         if sys.argv[-1] == "debug" : print(ast.dump(tree, indent=2))
 
-        v.visit(tree)
+        checker = type_checker.TypeChecker()
+        checker.visit(tree)
+
+        types = checker.type_map
+        print(types)
+
+        transpiler = visitor.Visitor(types)
+        transpiler.visit(tree)
+
+        code = transpiler.code()
 
 
-    output(file, stdout, v)
+    output(file, stdout, code)
 
 
 

@@ -21,25 +21,32 @@ class Visitor(ast.NodeVisitor):
 
     def __init__(self, types_map):
         super().__init__()
+
         self.lines: list[str] = [
             "#include <print>",
             "#include <string>",
             "#include <vector>",
             "#include <unordered_map>",
             "#include <unordered_set>",
-            "#include <utility>",
             "#include <tuple>",
+            "#include <utility>",
             "#include <ranges>",
             "",
-            "using namespace std::literals;",
+            "#include <optional>",
+            "#include <variant>",
+            "#include <any>",
             "", "",
+            "using namespace std::literals;",
+            "", "", "",
             "// functions:",
             "", "", "",
             "int main()"
         ]
 
-        self.functions: list[list[str]] = []
+        self.type_map = types_map
 
+        self.func: str = "main"
+        self.functions: dict[str, list[list[str]]] = {}
         self.in_func: bool = False
 
         self.line: str = ""
@@ -54,16 +61,51 @@ class Visitor(ast.NodeVisitor):
         # self.vars: set[str] = set()
         self.new_env = self
 
+        self.comment = ""
+
     def code(self): # should only be called once. Maybe I should add a flag, but I'll leave it for now!
         index = self.lines.index("// functions:") + 1
 
-        for function in self.functions:
+        for function in self.functions.values():
             self.lines[index : index] = function
             index += len(function) + 1
 
         self.lines.remove("// functions:")
         return self.lines
 
+
+    def getType(self, t: str): # returns the proper type name
+        ctad = "ctad takes care of type parameter deduction"
+
+        match t:
+            case "str":
+                return "std::string"
+            case "list":
+                self.addComment(ctad)
+                return "std::vector"
+            case "dict":
+                self.addComment(ctad)
+                return "std::unordered_map"
+            case "set":
+                self.addComment(ctad)
+                return "std::unordered_set"
+            case "tuple":
+                self.addComment(ctad)
+                return "std::tuple"
+            case "float":
+                return "double" # python floats are doubles
+
+            # case "int":
+                # technically, these are big ints.
+                # Should I use long long? or use a library?? idk...
+                # return "int"
+
+            case _:
+                return t # assuming there are no wrong types
+
+    def addComment(self, comment):
+        if self.comment: self.comment += f" | {comment}"
+        else: self.comment = comment
 
 
     def varExists(self, name):
@@ -78,24 +120,26 @@ class Visitor(ast.NodeVisitor):
     def endEnv(self):
         self.stack.pop()
 
-    def advance(self, end="", *, semi=True, newline=False, comment=""):
+    def advance(self, end="", *, semi=True, newline=False):
         if not self.line.strip() and not end: return # nothing to append. Prevents adding a useless semi
 
         strOrEmpty = lambda s, cond: s if cond else ""
 
         new_line = f"\n{self.indent}" if newline else ""
         semi_colon = strOrEmpty(";", semi)
-        the_comment = strOrEmpty(f"\t// {comment}", comment)
+        the_comment = strOrEmpty(f"\t\t\t// {self.comment}", self.comment)
 
         line = f"{self.indent}{self.line}{end}{new_line}" + semi_colon + the_comment
 
         if self.in_func:
-            self.functions[-1].append(line)
+            func_name = list(self.functions.keys())[-1]
+            self.functions[func_name].append(line)
         else:
             self.lines.append(line)
 
 
         self.line = ""
+        self.comment = ""
 
     def scope(self):
         space = " " if self.line and self.line[-1] != " " else ""
@@ -109,7 +153,7 @@ class Visitor(ast.NodeVisitor):
 
     def visitBody(self, body, *, unbrace=False, orelse=False):
 
-        should_scope = not unbrace or len(body) > 1 or orelse
+        should_scope = not unbrace or len(body) > 1 #or orelse
 
         if should_scope: self.scope()
         else: self.line += " "
@@ -119,6 +163,14 @@ class Visitor(ast.NodeVisitor):
             self.advance()
 
         if should_scope: self.unscope()
+
+
+    def visitElements(self, elts):
+        for elt in elts[:-1]:
+            self.visit(elt)
+            self.line += ", "
+        if elts: self.visit(elts[-1])
+
 
     def visit_Module(self, node):
         with self.new_env:
@@ -172,7 +224,20 @@ class Visitor(ast.NodeVisitor):
         # if isinstance(node.ctx, ast.Store):
         # if node.id not in self.vars: # old: needn't to check for ctx | old: new: turns out I need | new: I don't need. I need something else
         if not self.varExists(node.id):
-            self.line += f"auto {node.id}"
+            # self.line += f"auto {node.id}"
+            types = self.type_map[self.func][node.id]
+
+            vtype: str = ""
+            if len(types) > 1:
+                vtype = "std::variant<"
+                for t in types[:-1]:
+                    vtype += f"{self.getType(t)}, "
+                vtype += f"{self.getType(types[-1])}>"
+            else:
+                vtype = self.getType(types[0])
+
+            self.line += f"{vtype} {node.id}"
+
             # self.vars.add(node.id)
             self.addVar(node.id)
 
@@ -190,12 +255,7 @@ class Visitor(ast.NodeVisitor):
 
     def visit_List(self, node):
         self.line += "std::vector{"
-
-        for elt in node.elts[:-1]:
-            self.visit(elt)
-            self.line += ", "
-        if node.elts: self.visit(node.elts[-1])
-
+        self.visitElements(node.elts)
         self.line += "}"
 
 
@@ -210,15 +270,16 @@ class Visitor(ast.NodeVisitor):
         if node.keys: self.line = self.line[:-2] # removing last comma and space
         self.line += "}"
 
+
     def visit_Set(self, node):
         self.line += "std::unordered_set{"
-        for elt in node.elts:
-            self.visit(elt)
-            self.line += ", "
-        if node.elts: self.line = self.line[:-2]
-
+        self.visitElements(node.elts)
         self.line += "}"
 
+    def visit_Tuple(self, node):
+        self.line += "std::tuple{"
+        self.visitElements(node.elts)
+        self.line += "}"
 
     def visit_Subscript(self, node):
         self.visit(node.value)
@@ -344,14 +405,16 @@ class Visitor(ast.NodeVisitor):
     def visit_Pass(self, node):
         # # self.advance() # advance gets called automatically if not called already
         # pass             # so either lines here are fine
-        self.advance(newline=True, comment='"pass". Separate line to silence warning.')
+        self.addComment('"pass"')
+        self.advance(newline=True)
 
 
 # ====================================================================================
 
 
     def startFunc(self, name):
-        self.functions.append([])
+        self.func = name
+        self.functions[name] = []
         self.indent = ""
 
         # self.vars.add(name)
@@ -364,6 +427,7 @@ class Visitor(ast.NodeVisitor):
 
 
     def endFunc(self):
+        self.func = "main" # always back to main..i think
         self.stack = self.old_stack
         self.old_stack = None
 

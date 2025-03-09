@@ -5,7 +5,6 @@ import visitor
 
 
 OUT = "outputs/"
-IN = "tests/"
 
 
 GREEN = "\033[32m"
@@ -27,15 +26,17 @@ def output(file: str, stdout: bool, v: visitor.Visitor):
 
 
 def main():
-    if len(sys.argv) < 2: return print(f"{RED}No file provided{RESET}")
+    print(sys.argv)
+    if len(sys.argv) < 3: return print(f"{RED}No file provided{RESET}")
 
-    file = sys.argv[1]
-    stdout = len(sys.argv) > 2 and sys.argv[2] == "stdout"
+    DIR = f"{sys.argv[1]}_tests"
+    file = sys.argv[2]
+    stdout = len(sys.argv) > 3 and sys.argv[3] == "stdout"
 
-    pyfile = f"{IN}/{file}.py"
+    pyfile = f"{DIR}/{file}.py"
     if not os.path.exists(pyfile): return print(f"{RED}File {pyfile} not found{RESET}")
 
-    v = visitor.Visitor()
+    v = visitor.Visitor(None)
     with open(pyfile, "r") as fout:
         tree = ast.parse(fout.read())
 

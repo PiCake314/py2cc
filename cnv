@@ -1,3 +1,5 @@
-file="$1"
+dir="$1"
+file="$2"
 shift
-python3.12 src/main.py $file "$@"
+shift
+python3.12 src/main.py $dir $file "$@"

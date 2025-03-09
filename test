@@ -1,11 +1,10 @@
 #!/bin/bash
 
-# Iterate over each file in the "tests" directory
-for file in tests/*.py; do
+for file in $1_tests/*.py; do
     filename=$(basename "$file" .py)
 
     # Run the commands
-    ./cnv "$filename"
+    ./cnv $1 "$filename"
     echo "Python:"
     python3 $file
 

@@ -9,9 +9,12 @@
 
 using namespace std::literals;
 
+
 auto add(const auto& a, const auto& b) {
 	return a + b;
 }
+
+
 
 int main()
 {

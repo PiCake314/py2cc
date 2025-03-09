@@ -19,7 +19,7 @@ import ast
 
 class Visitor(ast.NodeVisitor):
 
-    def __init__(self):
+    def __init__(self, types_map):
         super().__init__()
         self.lines: list[str] = [
             "#include <print>",
@@ -33,6 +33,8 @@ class Visitor(ast.NodeVisitor):
             "",
             "using namespace std::literals;",
             "", "",
+            "// functions:",
+            "", "", "",
             "int main()"
         ]
 
@@ -53,12 +55,13 @@ class Visitor(ast.NodeVisitor):
         self.new_env = self
 
     def code(self): # should only be called once. Maybe I should add a flag, but I'll leave it for now!
-        index = self.lines.index("int main()") - 1
+        index = self.lines.index("// functions:") + 1
 
         for function in self.functions:
             self.lines[index : index] = function
             index += len(function) + 1
 
+        self.lines.remove("// functions:")
         return self.lines
 
 
@@ -75,15 +78,22 @@ class Visitor(ast.NodeVisitor):
     def endEnv(self):
         self.stack.pop()
 
-    def advance(self, end="", semi=True, comment=""):
+    def advance(self, end="", *, semi=True, newline=False, comment=""):
         if not self.line.strip() and not end: return # nothing to append. Prevents adding a useless semi
 
         strOrEmpty = lambda s, cond: s if cond else ""
 
+        new_line = f"\n{self.indent}" if newline else ""
+        semi_colon = strOrEmpty(";", semi)
+        the_comment = strOrEmpty(f"\t// {comment}", comment)
+
+        line = f"{self.indent}{self.line}{end}{new_line}" + semi_colon + the_comment
+
         if self.in_func:
-            self.functions[-1].append(f"{self.indent}{self.line}{end}" + strOrEmpty(";", semi) + strOrEmpty(f"\t// {comment}", comment))
+            self.functions[-1].append(line)
         else:
-            self.lines.append(f"{self.indent}{self.line}{end}" + strOrEmpty(";", semi) + strOrEmpty(f"\t// {comment}", comment))
+            self.lines.append(line)
+
 
         self.line = ""
 
@@ -97,13 +107,12 @@ class Visitor(ast.NodeVisitor):
         self.advance("}", semi=False)
 
 
-    def visitBody(self, body, unbrace=False):
+    def visitBody(self, body, *, unbrace=False, orelse=False):
 
-        should_scope = not unbrace or len(body) > 1
+        should_scope = not unbrace or len(body) > 1 or orelse
 
         if should_scope: self.scope()
-
-        if not should_scope: self.line += " "
+        else: self.line += " "
 
         for expr in body:
             self.visit(expr)
@@ -142,7 +151,9 @@ class Visitor(ast.NodeVisitor):
                     # self.line += "0, "
                     node.args.insert(0, ast.Constant(value=0)) # beginning of the range
 
-            # general case
+            case ast.Name(id="len"):
+                self.line += "std::ranges::size("
+
             case _: # should I specify ast.Name or do I allow any expression?
                 self.visit(node.func)
                 self.line += "("
@@ -284,7 +295,7 @@ class Visitor(ast.NodeVisitor):
         self.visit(node.test)
         self.line += ")"
 
-        self.visitBody(node.body, unbrace=True)
+        self.visitBody(node.body, unbrace=True, orelse=node.orelse)
 
         if node.orelse:
             self.line = "else"
@@ -333,7 +344,7 @@ class Visitor(ast.NodeVisitor):
     def visit_Pass(self, node):
         # # self.advance() # advance gets called automatically if not called already
         # pass             # so either lines here are fine
-        self.advance(comment='"pass". Separate line to silence warning.')
+        self.advance(newline=True, comment='"pass". Separate line to silence warning.')
 
 
 # ====================================================================================

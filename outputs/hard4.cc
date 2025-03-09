@@ -9,9 +9,12 @@
 
 using namespace std::literals;
 
+
 auto format(const auto& name) {
 	return "Hey, "s + name + "!"s;
 }
+
+
 
 int main()
 {

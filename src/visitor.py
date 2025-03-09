@@ -25,6 +25,10 @@ class Visitor(ast.NodeVisitor):
             "#include <print>",
             "#include <string>",
             "#include <vector>",
+            "#include <unordered_map>",
+            "#include <unordered_set>",
+            "#include <utility>",
+            "#include <tuple>",
             "#include <ranges>",
             "",
             "using namespace std::literals;",
@@ -184,6 +188,34 @@ class Visitor(ast.NodeVisitor):
         self.line += "}"
 
 
+    def visit_Dict(self, node):
+        self.line += "std::unordered_map{"
+        for key, value in zip(node.keys, node.values):
+            self.line += "std::pair{"
+            self.visit(key)
+            self.line += ", "
+            self.visit(value)
+            self.line += "}, "
+        if node.keys: self.line = self.line[:-2] # removing last comma and space
+        self.line += "}"
+
+    def visit_Set(self, node):
+        self.line += "std::unordered_set{"
+        for elt in node.elts:
+            self.visit(elt)
+            self.line += ", "
+        if node.elts: self.line = self.line[:-2]
+
+        self.line += "}"
+
+
+    def visit_Subscript(self, node):
+        self.visit(node.value)
+        self.line += "["
+        self.visit(node.slice)
+        self.line += "]"
+
+
     def visit_Assign(self, node):
         self.visit(node.targets[0])
         self.line += " = "
@@ -191,6 +223,7 @@ class Visitor(ast.NodeVisitor):
 
 
     def visit_AnnAssign(self, node):
+        # Should we trust the type annotations...?
         raise NotImplementedError("Types are not supported yet!")
 
 
@@ -246,7 +279,6 @@ class Visitor(ast.NodeVisitor):
             self.visit(cmp)
 
 
-
     def visit_If(self, node):
         self.line += "if ("
         self.visit(node.test)
@@ -258,6 +290,13 @@ class Visitor(ast.NodeVisitor):
             self.line = "else"
             self.visitBody(node.orelse, unbrace=True)
 
+    def visit_IfExp(self, node):
+        self.visit(node.test)
+        self.line += " ? "
+        self.visit(node.body)
+        self.line += " : "
+        self.visit(node.orelse)
+
     def visit_While(self, node):
         with self.new_env: # new environment on top
             self.line += "while ("
@@ -265,7 +304,6 @@ class Visitor(ast.NodeVisitor):
             self.line += ")"
 
             self.visitBody(node.body, unbrace=True)
-
 
     def visit_For(self, node):
         # gotta make some const analysis
@@ -341,6 +379,9 @@ class Visitor(ast.NodeVisitor):
 
         self.endFunc()
 
+    def visit_Return(self, node):
+        self.line += "return "
+        self.visit(node.value)
 
 
 # ====================================================================================

@@ -1,8 +1,10 @@
 
 
-# x = [1, 2, 3]
+cond1 = True and True or False
+cond2 = not cond1
 
-# for e in x: pass
+x = "Hi" if cond1 else "Hello"
+y = 1 if cond2 else 2
 
-# print(e) # we're treating this as an invalid program
+print(x, y)
 

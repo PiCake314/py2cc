@@ -230,11 +230,13 @@ class Visitor(ast.NodeVisitor):
             vtype: str = ""
             if len(types) > 1:
                 vtype = "std::variant<"
-                for t in types[:-1]:
+                for t in types:
                     vtype += f"{self.getType(t)}, "
-                vtype += f"{self.getType(types[-1])}>"
+                vtype = vtype[:-2] + ">"
+
             else:
-                vtype = self.getType(types[0])
+                t = next(iter(types))   # first (and only) type
+                vtype = self.getType(t)  # assume there is always a type
 
             self.line += f"{vtype} {node.id}"
 

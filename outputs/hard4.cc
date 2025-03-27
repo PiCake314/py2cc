@@ -1,16 +1,24 @@
 #include <print>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
 #include <tuple>
+#include <utility>
 #include <ranges>
 
-using namespace std::literals;
+#include <optional>
+#include <variant>
+#include <any>
 
 
-auto format(const auto& name) {
+using std::operator""s;
+
+
+
+template <typename T>
+auto format(const T& name) {
 	return "Hey, "s + name + "!"s;
 }
 
@@ -18,7 +26,8 @@ auto format(const auto& name) {
 
 int main()
 {
-	auto name = "Ali"s;
+	std::setprecision(2);
+	std::string name = "Ali"s;
 	auto formatted = format(name);
 	std::println("{}", formatted);
 }

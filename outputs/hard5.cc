@@ -1,16 +1,24 @@
 #include <print>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
 #include <tuple>
+#include <utility>
 #include <ranges>
 
-using namespace std::literals;
+#include <optional>
+#include <variant>
+#include <any>
 
 
-auto add(const auto& a, const auto& b) {
+using std::operator""s;
+
+
+
+template <typename T, typename U>
+auto add(const T& a, const U& b) {
 	return a + b;
 }
 
@@ -18,6 +26,7 @@ auto add(const auto& a, const auto& b) {
 
 int main()
 {
+	std::setprecision(2);
 	std::println("{}", add(1, 2));
 }
 

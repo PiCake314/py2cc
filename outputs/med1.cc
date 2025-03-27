@@ -12,7 +12,7 @@
 #include <any>
 
 
-using namespace std::literals;
+using std::operator""s;
 
 
 
@@ -21,10 +21,15 @@ using namespace std::literals;
 
 int main()
 {
-	int x = 1;
-	x = 1;
-	std::variant<double, int> a = 1;
-	a = 3.14;
+	std::variant<double, int, std::string> x = 1;
+	x = "Hi"s;
+	x = 3.14;
+	std::variant<bool, double, int, std::string> y;
+	std::visit([&y] (const auto& value) { y = value; }, x);			// assigning to a variant requires std::visit
+	y = true;
+	std::variant<double, int, std::string> a = 3.14;
+	std::visit([&y] (const auto& value) { y = value; }, a);			// assigning to a variant requires std::visit
+	std::visit([&a] (const auto& value) { a = value; }, x);			// assigning to a variant requires std::visit
 }
 
 

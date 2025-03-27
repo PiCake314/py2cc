@@ -1,0 +1,13 @@
+1
+true
+Hello
+3.14
+[1, 2, 3]
+[true, false]
+["Hello", "World"]
+{"key3": 3, "key2": 2, "key1": 1}
+{"key3": true, "key2": false, "key1": true}
+{"key3": "!", "key2": "World", "key1": "Hello"}
+{3, 2, 1}
+{false, true}
+{"Hello", "Hey", "Hi"}

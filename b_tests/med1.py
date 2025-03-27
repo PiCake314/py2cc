@@ -1,13 +1,12 @@
-# type propogation
+
 
 x = 1
-x = 1
-# y = x
+x = "Hi"
+x = 3.14
 
-# z = "Hey"
-# w = z
+y = x
+y = True
 
-
-a = 1
 a = 3.14
-
+y = a
+a = x

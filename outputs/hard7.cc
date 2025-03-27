@@ -1,29 +1,39 @@
 #include <print>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
 #include <tuple>
+#include <utility>
 #include <ranges>
 
-using namespace std::literals;
+#include <optional>
+#include <variant>
+#include <any>
 
 
-auto sum(const auto& l) {
-	auto acc = 0;
+using std::operator""s;
+
+
+
+template <typename T>
+auto sum(const T& l) {
+	int acc = 0;
 	for (const auto& e : l) acc += e;
 	return acc;
 }
 
-auto average(const auto& l) {
-	return sum(l) / std::ranges::size(l);
+template <typename T>
+auto average(const T& l) {
+	return sum(l) / (double) std::ranges::size(l);			// single div in python results in a double
 }
 
 
 int main()
 {
-	auto l = std::vector{1, 2, 3, 4, 5};
+	std::setprecision(2);
+	std::vector l = std::vector{1, 2, 3, 4, 8};			// ctad takes care of type parameter deduction
 	auto s = sum(l);
 	if (s != 0) std::println("{} {}", "Sum:"s, s);
 	std::println("{} {}", "Average:"s, average(l));

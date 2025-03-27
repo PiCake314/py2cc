@@ -1,13 +1,20 @@
 #include <print>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
 #include <tuple>
+#include <utility>
 #include <ranges>
 
-using namespace std::literals;
+#include <optional>
+#include <variant>
+#include <any>
+
+
+using std::operator""s;
+
 
 
 
@@ -15,12 +22,9 @@ using namespace std::literals;
 
 int main()
 {
-	if (false) {
-		std::println("{}", 1);
-	}
-	else if (false) {
-		std::println("{}", 2);
-	}
+	std::setprecision(2);
+	if (false) std::println("{}", 1);
+	else if (false) std::println("{}", 2);
 	else {
 		std::println("{}", 4);
 		std::println("{}", 2);

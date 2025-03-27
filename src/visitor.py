@@ -24,6 +24,7 @@ class Visitor(ast.NodeVisitor):
 
         self.lines: list[str] = [
             "#include <print>",
+            "#include <iomanip>",
             "#include <string>",
             "#include <vector>",
             "#include <unordered_map>",
@@ -36,7 +37,7 @@ class Visitor(ast.NodeVisitor):
             "#include <variant>",
             "#include <any>",
             "", "",
-            "using namespace std::literals;",
+            'using std::operator""s;',
             "", "", "",
             "// functions:",
             "", "", "",
@@ -46,7 +47,7 @@ class Visitor(ast.NodeVisitor):
         self.type_map = types_map
 
         self.func: str = "main"
-        self.functions: dict[str, list[list[str]]] = {}
+        self.functions: dict[str, list[str]] = {}
         self.in_func: bool = False
 
         self.line: str = ""
@@ -71,10 +72,14 @@ class Visitor(ast.NodeVisitor):
             index += len(function) + 1
 
         self.lines.remove("// functions:")
+
+        index = self.lines.index("int main()") + 2 # skip "main" declaration and "{"
+        self.lines.insert(index, "\tstd::setprecision(2);")
+
         return self.lines
 
 
-    def getType(self, t: str): # returns the proper type name
+    def ccType(self, t: str): # returns the proper type name
         ctad = "ctad takes care of type parameter deduction"
 
         match t:
@@ -103,6 +108,14 @@ class Visitor(ast.NodeVisitor):
             case _:
                 return t # assuming there are no wrong types
 
+
+    def getType(self, name):
+        if name not in self.type_map[self.func]:
+            raise Exception(f'Variable "{name}" not defined in "{self.func}"')
+
+        return self.type_map[self.func][name]
+
+
     def addComment(self, comment):
         if self.comment: self.comment += f" | {comment}"
         else: self.comment = comment
@@ -111,8 +124,12 @@ class Visitor(ast.NodeVisitor):
     def varExists(self, name):
         return any(name in stack for stack in self.stack) or name in self.globals
 
-    def addVar(self, name):
+    def addVar(self, name, type=""):
         self.stack[-1].add(name)
+        if not type: return
+
+        if name not in self.type_map[self.func]: self.type_map[self.func][name] = {type}
+        else: self.type_map[self.func][name].add(type)
 
     def addEnv(self):
         self.stack.append(set())
@@ -221,29 +238,41 @@ class Visitor(ast.NodeVisitor):
 
 
     def visit_Name(self, node):
-        # if isinstance(node.ctx, ast.Store):
-        # if node.id not in self.vars: # old: needn't to check for ctx | old: new: turns out I need | new: I don't need. I need something else
+
+        # i think it's safe to assume that any variable will have a type.
+        types = set()
+
+        # function
+        if node.id in self.type_map: types = {"_func_"}
+
+        # or a variable
+        if node.id in self.type_map[self.func]: types = self.type_map[self.func][node.id]
+
+        if not types: raise Exception(f'Variable "{node.id}" does not have a type.\nType Table: {self.type_map}')
+
         if not self.varExists(node.id):
             # self.line += f"auto {node.id}"
-            types = self.type_map[self.func][node.id]
+            # types = self.type_map[self.func][node.id]
 
-            vtype: str = ""
-            if len(types) > 1:
-                vtype = "std::variant<"
-                for t in types:
-                    vtype += f"{self.getType(t)}, "
-                vtype = vtype[:-2] + ">"
-
-            else:
-                t = next(iter(types))   # first (and only) type
-                vtype = self.getType(t)  # assume there is always a type
-
+            vtype: str = self.ccType(next(iter(types))) if len(types) == 1 else f"std::variant<{", ".join(map(self.ccType, sorted(types)))}>"
             self.line += f"{vtype} {node.id}"
 
             # self.vars.add(node.id)
             self.addVar(node.id)
 
-        else:
+
+
+        # # reading from variant
+        # # only call std::visit if I'm reading from the variant
+        # # and only call std::visit if I'm a variant.
+        # elif isinstance(node.ctx, ast.Load) and len(types) > 1:
+        #     print(node.id)
+        #     print(node.types)
+        #     vtype: str = f"std::variant<{", ".join(map(self.ccType, sorted(node.types)))}>"
+        #     self.line += f"std::visit([](const auto& value) -> {vtype} {{ return value; }}, {node.id})"
+        #     self.addComment("accessing the value")
+
+        else: # reading
             self.line += node.id
 
     def visit_Constant(self, node):
@@ -290,10 +319,45 @@ class Visitor(ast.NodeVisitor):
         self.line += "]"
 
 
+
+    # this had a bug this entire time ("type" instead of "types") but it didn't affect anything??
+    # so I'm removing it
+    # # def checkVariant(self, node, types: set[str]):
+    # #     if isinstance(node.value, ast.Name): node.value.types = type
+
+
     def visit_Assign(self, node):
-        self.visit(node.targets[0])
-        self.line += " = "
+        target = node.targets[0] # assuming one target for now
+
+        # variant assign
+        is_varaint = isinstance(node.value, ast.Name) and len(self.type_map[self.func][target.id]) > 1
+        # print(is_varaint)
+        # print(self.func)
+        # print(target.id)
+        # print(self.type_map)
+        # print(self.type_map[self.func])
+        # print(self.type_map[self.func][target.id])
+        if is_varaint:
+            # only visit if the var doesn't exist
+            # otherwize, and useless line with just the id will be added
+            if not self.varExists(target.id): self.visit(target)
+            self.advance()
+
+            self.addComment("assigning to a variant requires std::visit")
+            self.line += f"std::visit([&{target.id}] (const auto& value) {{ {target.id} = value; }}, "
+        else:
+            self.visit(target)
+            self.line += " = "
+
+        # package the type in case the assignment is a variant
+        # if isinstance(target, ast.Name):
+        #     self.checkVariant(node, self.type_map[self.func][target.id])
+        # elif isinstance(target, ast.Subscript):
+        #     self.checkVariant(node, self.type_map[self.func][target.value.id])
+
         self.visit(node.value)
+
+        if is_varaint: self.line += ")" # closing the call to std::visit
 
 
     def visit_AnnAssign(self, node):
@@ -303,13 +367,13 @@ class Visitor(ast.NodeVisitor):
 
     def visit_AugAssign(self, node):
         self.visit(node.target) # single target
-        self.line += f" {Visitor.getBinOp(node.op)}= "
+        self.line += f" {self.getBinOp(node.op)}= "
         self.visit(node.value)
 
 
     def visit_BinOp(self, node):
         self.visit(node.left)
-        self.line += f" {Visitor.getBinOp(node.op)} "
+        self.line += f" {self.getBinOp(node.op)} "
         self.visit(node.right)
 
 
@@ -443,11 +507,39 @@ class Visitor(ast.NodeVisitor):
 
         with self.new_env:
             self.line += f"auto {node.name}("
-            for arg in node.args.args:
-                self.line += f"const auto& {arg.arg}, "
-                self.addVar(arg.arg)
+            template_line: str = ""
+            T: chr = 'T'
 
-            if node.args.args: self.line = self.line[:-2]
+            for arg in node.args.args:
+
+                # determine the type:
+                vtype: str = "" 
+                const: bool = "const "
+                # we're only reading, never assigning.
+                if arg.arg in self.type_map[self.func] and self.type_map[self.func][arg.arg]:
+                    # a type can only be deduced if the var been reassigned in the template
+                    # hence, no const
+                    const = ""
+
+                    types = self.getType(arg.arg)
+                    vtype = self.ccType(next(iter(types))) if len(types) == 1 else f"std::variant<{", ".join(map(self.ccType, sorted(types)))}>"
+                else: # otherwise, make a template
+                    if not template_line:
+                        template_line = f"template <typename {T}"
+                    else:
+                        template_line += f", typename {T}"
+
+                    vtype = T
+                    T = chr(ord(T) + 1)
+
+
+                # after determining the type, now we can add the parameter
+                self.line += f"{const}{vtype}& {arg.arg}, "
+                self.addVar(arg.arg, vtype)
+
+            if template_line: self.line = f"{template_line}>\n{self.line}" # add the template line if needed
+
+            if node.args.args: self.line = self.line[:-2] # removign last comma and space
 
             self.line += ")"
 
@@ -481,7 +573,7 @@ class Visitor(ast.NodeVisitor):
 
         raise Exception("Unknown operator")
 
-    def getBinOp(op):
+    def getBinOp(self, op):
         match op:
             case ast.Add():
                 return "+"
@@ -490,9 +582,10 @@ class Visitor(ast.NodeVisitor):
             case ast.Mult():
                 return "*"
             case ast.Div():
-                return "/"
+                self.addComment("single div in python results in a double")
+                return "/ (double)"
             case ast.FloorDiv():
-                return "//"
+                return "/"
             case ast.Mod():
                 return "%"
             case ast.Pow():
@@ -531,3 +624,4 @@ class Visitor(ast.NodeVisitor):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.endEnv()
+        return None # don't suppress exceptions

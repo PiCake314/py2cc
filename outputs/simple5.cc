@@ -1,13 +1,20 @@
 #include <print>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
 #include <tuple>
+#include <utility>
 #include <ranges>
 
-using namespace std::literals;
+#include <optional>
+#include <variant>
+#include <any>
+
+
+using std::operator""s;
+
 
 
 
@@ -15,13 +22,14 @@ using namespace std::literals;
 
 int main()
 {
-	auto x = +10;
-	auto y = -x;
-	auto z = +x;
-	auto a = true;
-	auto b = not a;
-	auto c = -1;
-	auto d = ~c;
+	std::setprecision(2);
+	int x = +10;
+	int y = -x;
+	int z = +x;
+	bool a = true;
+	int b = not a;
+	int c = -1;
+	int d = ~c;
 	std::println("{}", x);
 	std::println("{}", y);
 	std::println("{}", z);

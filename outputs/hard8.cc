@@ -1,4 +1,5 @@
 #include <print>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -12,34 +13,34 @@
 #include <any>
 
 
-using namespace std::literals;
+using std::operator""s;
 
 
 
 auto func() {
-}	// "pass"
+}			// "pass"
 
 auto a() {
 	if (true) 
-	;	// "pass"
+	;			// "pass"
 	else 
-	;	// "pass"
+	;			// "pass"
 }
 
 auto b() {
 	if (true) if (false) if (1) 
-	;	// "pass"
+	;			// "pass"
 	else 
-	;	// "pass"
+	;			// "pass"
 	else 
-	;	// "pass"
+	;			// "pass"
 	else 
-	;	// "pass"
+	;			// "pass"
 }
 
 auto c() {
 	if (true) if (false) if (1) 
-	;	// "pass"
+	;			// "pass"
 	else {
 		1;
 		2;
@@ -55,6 +56,7 @@ auto c() {
 }
 int main()
 {
+	std::setprecision(2);
 }
 
 

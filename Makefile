@@ -1,8 +1,9 @@
 CC = clang++
 CFLAGS = -std=c++26
+NOWARN = -Wno-unused-value
 
 main:
-	$(CC) $(CFLAGS) outputs/$(file).cc -o outputs/$(file).out || echo "Error: compilation filed!"
+	$(CC) $(CFLAGS) $(NOWARN) outputs/$(file).cc -o outputs/$(file).out
 
 
 run: main

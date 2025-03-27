@@ -1,5 +1,4 @@
 #include <print>
-#include <iomanip>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -17,17 +16,17 @@ using std::operator""s;
 
 
 
+auto f(std::string& s) {
+	s = "Hi"s;
+	std::println("{}", s);
+}
 
 
 
 int main()
 {
-	std::setprecision(2);
-	std::println("{}", 1 < 2 and 2 < 3);
-	std::println("{}", 1 < 2 < 3);
-	std::println("{}", 1 < (2 < 3));
-	std::println("{}", 1 < 5 and 5 > 2 and 2 < 1);
-	std::println("{}", 1 < 5 and 5 > 2 and 2 > 1);
+	std::variant<int, std::string> x = 1;
+	x = "Hello"s;
 }
 
 

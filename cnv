@@ -2,4 +2,4 @@ dir="$1"
 file="$2"
 shift
 shift
-python3.12 src/main.py $dir $file "$@"
+python3.12 src/main.py $dir $file 

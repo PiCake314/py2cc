@@ -1,16 +1,24 @@
 #include <print>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
 #include <tuple>
+#include <utility>
 #include <ranges>
 
-using namespace std::literals;
+#include <optional>
+#include <variant>
+#include <any>
 
 
-auto greet(const auto& name) {
+using std::operator""s;
+
+
+
+template <typename T>
+auto greet(const T& name) {
 	std::println("{} {}", "Hello,"s, name);
 }
 
@@ -18,6 +26,7 @@ auto greet(const auto& name) {
 
 int main()
 {
+	std::setprecision(2);
 	greet("Ali"s);
 }
 

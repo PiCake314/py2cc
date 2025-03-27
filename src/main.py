@@ -23,14 +23,15 @@ def output(file: str, stdout: bool, code):
         fout.write("\n".join(code))
 
 
-    if not stdout: print(f"{GREEN}File {ccfile} created{RESET}")
+    # if not stdout: print(f"{GREEN}File {ccfile} created{RESET}")
 
 
 
 
 
 def main():
-    print(sys.argv)
+    # sys.tracebacklimit = 0
+    # print(sys.argv)
     if len(sys.argv) < 3: return print(f"{RED}No file provided{RESET}")
 
     DIR = f"{sys.argv[1]}_tests"
@@ -51,7 +52,7 @@ def main():
         checker.visit(tree)
 
         types = checker.type_map
-        print(types)
+        # print(types)
 
         transpiler = visitor.Visitor(types)
         transpiler.visit(tree)

@@ -1,15 +1,44 @@
 #!/bin/bash
 
+GREEN="\033[0;32m"
+RED="\033[0;31m"
+RESET="\033[0m"
+
 for file in $1_tests/*.py; do
     filename=$(basename "$file" .py)
 
     # Run the commands
     ./cnv $1 "$filename"
-    echo "Python:"
-    python3 $file
 
-    echo -e "\nCC:"
-    make -s run file="$filename"
+    # run files
+    PY_temp=$(python3 $file)
+    PY_err=$?
+    CC_temp=$(make -s run file="$filename") # -s for silent mode
+    CC_err=$?
+
+    # check for errors
+    if [ $PY_err -ne 0 ]; then
+        echo -e "${RED}Python Error: ${RESET}Test $filename failed"
+        break
+    fi
+    if [ $CC_err -ne 0 ]; then
+        echo -e "${RED}CC Error: ${RESET}Test $filename failed"
+        break
+    fi
+
+    # clean output
+    PY_temp=$(echo "$PY_temp" | tr -d "[:space:]" | tr A-Z a-z)
+    CC_temp=$(echo "$CC_temp" | tr -d "[:space:]" | tr A-Z a-z)
+    
+    # result
+    if [ "$PY_temp" == "$CC_temp" ]; then
+        echo -e "Test $filename: ${GREEN}PASSED${RESET}"
+    else
+        echo -e "${GREEN}Test $filename: ${RED}FAILED${RESET}"
+        echo "Python Output: $PY_temp"
+        echo "CC Output: $CC_temp"
+    fi
+
 
     echo "========================================"
 done

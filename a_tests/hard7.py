@@ -13,7 +13,7 @@ def average(l):
     return sum(l) / len(l)
 
 
-l = [1, 2, 3, 4, 5]
+l = [1, 2, 3, 4, 8]
 s = sum(l)
 if s != 0:
     print("Sum:", s)

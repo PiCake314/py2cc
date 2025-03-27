@@ -1,13 +1,20 @@
 #include <print>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
 #include <tuple>
+#include <utility>
 #include <ranges>
 
-using namespace std::literals;
+#include <optional>
+#include <variant>
+#include <any>
+
+
+using std::operator""s;
+
 
 
 
@@ -15,15 +22,16 @@ using namespace std::literals;
 
 int main()
 {
-	auto l = std::vector{"x"s, "y"s, "z"s};
+	std::setprecision(2);
+	std::vector l = std::vector{"x"s, "y"s, "z"s};			// ctad takes care of type parameter deduction
 	std::println("{}", l);
 	std::println("{}", l[1]);
-	auto d = std::unordered_map{std::pair{"a"s, 1}, std::pair{"b"s, 2}, std::pair{"c"s, 3}};
+	std::unordered_map d = std::unordered_map{std::pair{"a"s, 1}, std::pair{"b"s, 2}, std::pair{"c"s, 3}};			// ctad takes care of type parameter deduction
 	std::println("{}", d);
 	std::println("{}", d["a"s]);
 	d["z"s] = 26;
 	std::println("{}", d["z"s]);
-	auto s = std::unordered_set{"Hello"s, "Hi"s, "Hey"s, "Hi"s};
+	std::unordered_set s = std::unordered_set{"Hello"s, "Hi"s, "Hey"s, "Hi"s};			// ctad takes care of type parameter deduction
 	std::println("{}", s);
 }
 
